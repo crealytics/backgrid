@@ -247,6 +247,29 @@ describe("A Body", function () {
     expect(body.$el.find("tr.empty").length).toBe(0);
   });
 
+  it("will show the empty row if all rows are removed from the collection", function () {
+    col.reset({id: 4});
+    body = new Backgrid.Body({
+      emptyText: " ",
+      columns: [{
+        name: "id",
+        cell: "integer"
+      }],
+      collection: col
+    });
+    body.render();
+    expect(body.$el.find("tr.empty").length).toBe(0);
+
+    col.remove(col.at(0));
+    expect(body.$el.find("tr.empty").length).toBe(1);
+
+    body.insertRow({id: 5});
+    expect(body.$el.find("tr.empty").length).toBe(0);
+
+    body.removeRow(col.at(0));
+    expect(body.$el.find("tr.empty").length).toBe(1);
+  });
+
   it("#sort will throw a RangeError is direction is not ascending, descending or null", function () {
     body = new Backgrid.Body({
       collection: col,
@@ -488,4 +511,44 @@ describe("A Body", function () {
     expect(body.rows[1].cells[0].$el.hasClass("editor")).toBe(false);
   });
 
+  it("will not throw an exception when backgrid:edited is fired on a shared model", function () {
+    var people = new Backbone.Collection([
+      {name: "alice", age: 28, married: false},
+      {name: "bob", age: 30, married: true}
+    ]);
+    var columns = new Backgrid.Columns([{
+      name: "name",
+      cell: "string"
+    }, {
+      name: "age",
+      cell: "integer",
+      editable: false
+    }, {
+      name: "sex",
+      cell: "boolean",
+      renderable: false
+    }]);
+    var body = new Backgrid.Body({
+      collection: people,
+      columns: columns
+    });
+    body.render();
+
+    var columns2 = new Backgrid.Columns([{
+      name: "name",
+      cell: "string"
+    }]);
+    var body2 = new Backgrid.Body({
+      collection: people,
+      columns: columns2
+    });
+    body2.render();
+
+    body.rows[0].cells[0].enterEditMode();
+    var testTrigger = function() {
+      people.trigger("backgrid:edited", people.at(0), columns.at(0), new Backgrid.Command({keyCode: 9}));
+    };
+    expect(testTrigger).not.toThrow();
+  });
+  
 });
